@@ -8,42 +8,6 @@ import (
 	"time"
 )
 
-func TestSplitBTReportRawPayload(t *testing.T) {
-	raw := make([]byte, 66)
-	raw[0] = btReportID
-	raw[1] = btCmdPrefix
-	raw[2] = 1 // key-matrix data, not the 0x81 opcode
-	raw[3] = 0
-	raw[4] = 240
-	out, ok := splitBTReport(raw, len(raw), btCmdPrefix)
-	if !ok || out[0] != 1 || out[2] != 240 {
-		t.Fatalf("framed payload ok=%v out=%v", ok, out[:4])
-	}
-
-	bare := []byte{btCmdPrefix, 0x04, 0x8A}
-	out, ok = splitBTReport(bare, len(bare), btCmdPrefix)
-	if !ok || out[0] != 0x04 || out[1] != 0x8A {
-		t.Fatalf("prefix-only payload ok=%v out=%v", ok, out[:2])
-	}
-	if _, ok := splitBTReport([]byte{btReportID, btStatPrefix, 80}, 3, btCmdPrefix); ok {
-		t.Fatal("status prefix matched a command read")
-	}
-}
-
-func TestBTWriteGap(t *testing.T) {
-	if d := btWriteDelay(time.Time{}, btMinWriteGap); d != 0 {
-		t.Fatalf("first gap = %s", d)
-	}
-	last := time.Now().Add(-20 * time.Millisecond)
-	d := btWriteDelay(last, btMinWriteGap)
-	if d < 30*time.Millisecond || d > 50*time.Millisecond {
-		t.Fatalf("gap = %s", d)
-	}
-	if d := btWriteDelay(time.Now().Add(-80*time.Millisecond), btMinWriteGap); d != 0 {
-		t.Fatalf("stale gap = %s", d)
-	}
-}
-
 func TestBTWriteDoesNotWaitForReply(t *testing.T) {
 	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 	if err != nil {

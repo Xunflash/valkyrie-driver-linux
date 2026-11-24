@@ -3,12 +3,13 @@
 > **语言 / Language**：**简体中文** | [English](README_EN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Xunflash/valkyrie-driver-linux?color=6366f1)](https://github.com/Xunflash/valkyrie-driver-linux/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27%2B-00ADD8.svg)](https://go.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20(arm64%20%2F%20amd64)-10b981.svg)](#安装与构建)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20(amd64%20%2F%20arm64)%20%7C%20Windows%20(amd64)-10b981.svg)](#下载预编译版本)
 
-一个专为 Linux 打造的 **瓦尔基里 (Valkyrie) 鼠标原生轻量驱动**（已在 **VK M5 / PAW3395** 真机上通过蓝牙 BLE 完整实测）。
+一个专为 Linux 与 Windows 打造的 **瓦尔基里 (Valkyrie) 鼠标原生轻量驱动**（已在 **VK M5 / PAW3395** 真机上通过蓝牙 BLE 完整实测）。
 
-使用 **纯 Go (`CGO_ENABLED=0`) + [`egoist/mygo`](https://github.com/egoist/mygo) 原生 GPU UI** 编写，直接通过 Linux `/dev/hidraw*` 与鼠标固件通信：**无需 Wine、无需 Electron / Chromium / WebView、无需浏览器 WebHID 授权弹窗**，单可执行文件仅约 **12 MB**，完整复刻 Windows 官方驱动核心功能。
+使用 **纯 Go (`CGO_ENABLED=0`) + [`egoist/mygo`](https://github.com/egoist/mygo) 原生 GPU UI** 编写，在 Linux 上直连 `/dev/hidraw*`、在 Windows 上直连原生 Win32 HID (`hid.dll` / `setupapi.dll`)：**无需 Wine、无需 Electron / Chromium / WebView、无需浏览器 WebHID 授权弹窗**，单可执行文件仅约 **12 MB**，完整复刻 Windows 官方驱动核心功能。
 
 ---
 
@@ -75,7 +76,19 @@
 
 ---
 
-## 安装与构建
+## 下载预编译版本
+
+前往 [**GitHub Releases**](https://github.com/Xunflash/valkyrie-driver-linux/releases) 直接下载由 GitHub Actions 自动构建的二进制包（均附带 `SHA256SUMS.txt`）：
+
+| 平台 | 架构 | 压缩包 | 说明 |
+| --- | --- | --- | --- |
+| **Windows** | `x86_64` (`amd64`) | `valkyrie-driver-v*-windows-amd64.zip` | 解压双击 `valkyrie-driver.exe` 即可运行 |
+| **Linux** | `x86_64` (`amd64`) | `valkyrie-driver-v*-linux-amd64.tar.gz` | 含二进制、图标与 `packaging/99-valkyrie-hid.rules` |
+| **Linux (ARM)** | `arm64` (`aarch64`) | `valkyrie-driver-v*-linux-arm64.tar.gz` | 适用于树莓派 / ARM 笔记本 / 工作站 |
+
+---
+
+## 从源码安装与构建
 
 ### 方式一：一键脚本安装（推荐）
 
@@ -142,11 +155,14 @@ make test-live
 ├── ui_theme.go             # Obsidian / Porcelain 双主题系统与矢量图标
 ├── ui_page_*.go            # 7 大功能页面（按键 / DPI / 性能 / 传感器 / 宏 / 配置 / 设备）
 ├── hid/
-│   ├── hidraw_linux.go     # 纯 Go /sys/class/hidraw 扫描、Report Descriptor 解析与三模传输层
+│   ├── descriptor.go       # 通用 Report Descriptor 解析、蓝牙分包与 USB/2.4G Feature 传输层
+│   ├── hidraw_linux.go     # Linux 纯 Go /sys/class/hidraw 扫描与三模传输层
+│   ├── hid_windows.go      # Windows 纯 Go Win32 HID (hid.dll / setupapi.dll) 三模传输层
 │   ├── protocol.go         # CommonMSCH585 指令编解码与 Bit7 校验
 │   ├── keymap.go           # 鼠标 / 组合键 / 火力键 / 多媒体 / 宏绑定双向编解码
 │   ├── macro.go            # 256 字节板载宏打包/解包与 0x03/0x83 分包读写
 │   └── types.go            # 型号能力表、热点坐标与默认 16×4 按键矩阵
+├── .github/workflows/      # GitHub Actions 自动测试与多平台 Release 发布流
 ├── assets/                 # 嵌入图标与鼠标俯视图
 ├── packaging/              # udev 规则、.desktop 快捷方式与一键安装脚本
 └── docs/screenshots/       # 界面预览截图

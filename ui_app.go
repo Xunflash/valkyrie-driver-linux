@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -744,9 +745,13 @@ func (a *DriverApp) viewSidebar(c *ui.Context, p StudioPalette) {
 		// Sidebar Footer
 		ui.Divider(c)
 		ui.Row(c).Justify(ui.SpaceBetween).AlignItems(ui.Center).Gap(8).Children(func() {
-			pathStr := "hidraw 未连接"
+			pathStr := "HID 未连接"
 			if a.connected && a.state != nil {
-				pathStr = fmt.Sprintf("%s · %d DPI", a.state.Info.Path, a.currentActiveDPI())
+				shortPath := a.state.Info.Path
+				if len(shortPath) > 22 {
+					shortPath = a.state.Info.VIDPID()
+				}
+				pathStr = fmt.Sprintf("%s · %d DPI", shortPath, a.currentActiveDPI())
 			}
 			ui.Text(c, pathStr).Font("monospace").FontSize(10).TextColor(p.SubtleText).Grow(1).SingleLine()
 			if a.busy {
@@ -802,7 +807,11 @@ func (a *DriverApp) viewDisconnected(c *ui.Context, p StudioPalette) {
 				ui.Text(c, "连接排查指引").FontSize(12).Bold()
 				ui.Text(c, "• 蓝牙模式：确保鼠标开关拨至 BT 并在系统蓝牙保持连接，若已休眠请轻移鼠标唤醒。").FontSize(12).TextColor(p.Theme.TextMuted)
 				ui.Text(c, "• 2.4G / USB 模式：插入接收器或数据线后点击下方按钮立即识别。").FontSize(12).TextColor(p.Theme.TextMuted)
-				ui.Text(c, "• 权限检查：系统 udev 规则需放行 VID 374A 的 /dev/hidraw* 节点读写权限。").FontSize(12).TextColor(p.Theme.TextMuted)
+				if runtime.GOOS == "windows" {
+					ui.Text(c, "• Windows 提示：若官方驱动或其他鼠键工具正在占用 HID 接口，请先将其退出后重试。").FontSize(12).TextColor(p.Theme.TextMuted)
+				} else {
+					ui.Text(c, "• 权限检查：系统 udev 规则需放行 VID 374A 的 /dev/hidraw* 节点读写权限。").FontSize(12).TextColor(p.Theme.TextMuted)
+				}
 			})
 			ui.Row(c).Justify(ui.End).Gap(10).Children(func() {
 				if ui.PrimaryButton(c.Key("reconnect-btn"), "扫描并连接鼠标").Padding(8, 18).Disabled(a.busy).Clicked() {

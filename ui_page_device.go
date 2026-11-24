@@ -28,7 +28,7 @@ func (a *DriverApp) viewDevicePage(c *ui.Context, p StudioPalette) {
 				studioInfoRow(c, p, "RongYuan 设备 ID", fmt.Sprintf("%d (0x%04X)", st.DevID, st.DevID))
 				studioInfoRow(c, p, "连接方式", st.Info.Mode.Label())
 				studioInfoRow(c, p, "VID : PID", st.Info.VIDPID())
-				studioInfoRow(c, p, "Linux HID 节点", st.Info.Path)
+				studioInfoRow(c, p, "HID 设备路径", st.Info.Path)
 				studioInfoRow(c, p, "当前固件版本", st.FirmwareString())
 				if st.Battery >= 0 {
 					studioInfoRow(c, p, "当前电量", fmt.Sprintf("%d%%", st.Battery))

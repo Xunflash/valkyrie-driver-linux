@@ -18,11 +18,20 @@ import (
 //go:embed assets/icon.png
 var appIconPNG []byte
 
+// version is overridden at release build time via -ldflags="-X main.version=vX.Y.Z".
+var version = "1.0.0"
+
 func main() {
 	statusFlag := flag.Bool("status", false, "以只读模式读取鼠标实时状态并打印后退出")
 	jsonFlag := flag.Bool("json", false, "配合 --status 输出 JSON 格式")
 	checkFWFlag := flag.Bool("check-fw", false, "配合 --status 在线检查最新固件版本")
+	versionFlag := flag.Bool("version", false, "打印版本号并退出")
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Printf("valkyrie-driver %s\n", version)
+		return
+	}
 
 	backend := NewLinuxHIDBackend()
 
@@ -36,7 +45,7 @@ func main() {
 	}
 
 	mygo.App.SetName("Valkyrie Driver")
-	mygo.App.SetVersion("2.0.0")
+	mygo.App.SetVersion(version)
 
 	app := NewDriverApp(backend, store)
 

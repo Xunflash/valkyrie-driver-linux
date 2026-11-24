@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run unit & UI tests
+        run: go test -v -count=1 ./...
+
+  release:
+    name: Build & Publish Release
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve release tag
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Building release for tag: ${TAG}"
+
+      - name: Build Windows, Linux x86_64, and Linux ARM64 packages
+        shell: bash
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          rm -rf dist stage
+          mkdir -p dist stage
+
+          # 1. Windows x86_64 (GUI subsystem, pure Go)
+          WIN_DIR="stage/valkyrie-driver-${TAG}-windows-amd64"
+          mkdir -p "${WIN_DIR}"
+          GOOS=windows GOARCH=amd64 go build \
+            -trimpath \
+            -ldflags="-s -w -H=windowsgui -X main.version=${TAG}" \
+            -o "${WIN_DIR}/valkyrie-driver.exe" .
+          cp README.md README_EN.md LICENSE "${WIN_DIR}/"
+          (cd stage && zip -r "../dist/valkyrie-driver-${TAG}-windows-amd64.zip" "valkyrie-driver-${TAG}-windows-amd64")
+
+          # 2. Linux x86_64 (pure Go)
+          LIN_AMD64_DIR="stage/valkyrie-driver-${TAG}-linux-amd64"
+          mkdir -p "${LIN_AMD64_DIR}/assets" "${LIN_AMD64_DIR}/packaging"
+          GOOS=linux GOARCH=amd64 go build \
+            -trimpath \
+            -ldflags="-s -w -X main.version=${TAG}" \
+            -o "${LIN_AMD64_DIR}/valkyrie-driver" .
+          cp assets/icon.png "${LIN_AMD64_DIR}/assets/"
+          cp packaging/* "${LIN_AMD64_DIR}/packaging/"
+          cp README.md README_EN.md LICENSE "${LIN_AMD64_DIR}/"
+          tar -C stage -czf "dist/valkyrie-driver-${TAG}-linux-amd64.tar.gz" "valkyrie-driver-${TAG}-linux-amd64"
+
+          # 3. Linux ARM64 (pure Go)
+          LIN_ARM64_DIR="stage/valkyrie-driver-${TAG}-linux-arm64"
+          mkdir -p "${LIN_ARM64_DIR}/assets" "${LIN_ARM64_DIR}/packaging"
+          GOOS=linux GOARCH=arm64 go build \
+            -trimpath \
+            -ldflags="-s -w -X main.version=${TAG}" \
+            -o "${LIN_ARM64_DIR}/valkyrie-driver" .
+          cp assets/icon.png "${LIN_ARM64_DIR}/assets/"
+          cp packaging/* "${LIN_ARM64_DIR}/packaging/"
+          cp README.md README_EN.md LICENSE "${LIN_ARM64_DIR}/"
+          tar -C stage -czf "dist/valkyrie-driver-${TAG}-linux-arm64.tar.gz" "valkyrie-driver-${TAG}-linux-arm64"
+
+          # 4. SHA256 checksums
+          (cd dist && sha256sum valkyrie-driver-* > SHA256SUMS.txt)
+          ls -lh dist/
+          cat dist/SHA256SUMS.txt
+
+      - name: Prepare release notes
+        shell: bash
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          cat <<EOF > /tmp/release-notes.md
+          ## Valkyrie Driver ${TAG}
+
+          纯 Go (\`CGO_ENABLED=0\`) + MyGo 原生 GPU 界面的瓦尔基里 (Valkyrie / RongYuan \`CommonMSCH585\`) 轻量鼠标驱动，支持 **蓝牙 (BLE) / 2.4G 无线接收器 / USB 有线** 三模直连。
+
+          ### 下载说明 / Downloads
+
+          | 平台 / Platform | 架构 / Arch | 文件名 / Asset |
+          | --- | --- | --- |
+          | **Windows** | x86_64 (\`amd64\`) | \`valkyrie-driver-${TAG}-windows-amd64.zip\` |
+          | **Linux** | x86_64 (\`amd64\`) | \`valkyrie-driver-${TAG}-linux-amd64.tar.gz\` |
+          | **Linux (ARM)** | ARM64 (\`arm64\`) | \`valkyrie-driver-${TAG}-linux-arm64.tar.gz\` |
+
+          ### 快速上手 / Quick Start
+
+          - **Windows**：解压后直接双击运行 \`valkyrie-driver.exe\`（若官方驱动正在运行请先退出避免占用 HID 接口）。
+          - **Linux (amd64 / arm64)**：解压后运行 \`./valkyrie-driver\`；如提示无权限访问 \`/dev/hidraw*\`，请安装压缩包内附带的 udev 规则：
+            \`\`\`bash
+            sudo install -Dm644 packaging/99-valkyrie-hid.rules /etc/udev/rules.d/99-valkyrie-hid.rules
+            sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=hidraw --subsystem-match=usb
+            \`\`\`
+          - **CLI 诊断**：Linux 下支持 \`./valkyrie-driver --status\`、\`--json\`、\`--check-fw\`。
+
+          ### 校验和 / SHA256 Checksums
+
+          \`\`\`text
+          $(cat dist/SHA256SUMS.txt)
+          \`\`\`
+          EOF
+
+      - name: Publish GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" dist/* --clobber
+            gh release edit "${TAG}" --title "Valkyrie Driver ${TAG}" --notes-file /tmp/release-notes.md
+          else
+            gh release create "${TAG}" dist/* \
+              --title "Valkyrie Driver ${TAG}" \
+              --notes-file /tmp/release-notes.md
+          fi

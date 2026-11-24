@@ -3,12 +3,13 @@
 > **Language**: [简体中文](README.md) | **English**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-38bdf8.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Xunflash/valkyrie-driver-linux?color=6366f1)](https://github.com/Xunflash/valkyrie-driver-linux/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.27%2B-00ADD8.svg)](https://go.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20(arm64%20%2F%20amd64)-10b981.svg)](#installation)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20(amd64%20%2F%20arm64)%20%7C%20Windows%20(amd64)-10b981.svg)](#downloads)
 
-A lightweight, native Linux mouse configuration studio for **Valkyrie (RongYuan `CommonMSCH585`)** gaming mice — tested end-to-end on real **Valkyrie VK M5 (PAW3395)** hardware over Bluetooth (BLE).
+A lightweight, native mouse configuration studio for **Valkyrie (RongYuan `CommonMSCH585`)** gaming mice on **Linux & Windows** — tested end-to-end on real **Valkyrie VK M5 (PAW3395)** hardware over Bluetooth (BLE).
 
-Built with **pure Go (`CGO_ENABLED=0`)** and [**`egoist/mygo`**](https://github.com/egoist/mygo) native GPU UI, talking directly to Linux `/dev/hidraw*`. No Wine, no Electron/Chromium/WebView, and no WebHID permission prompts — compiles down to a single **~12 MB** binary with full Windows-driver feature parity.
+Built with **pure Go (`CGO_ENABLED=0`)** and [**`egoist/mygo`**](https://github.com/egoist/mygo) native GPU UI, talking directly to Linux `/dev/hidraw*` and Windows Win32 HID (`hid.dll` / `setupapi.dll`). No Wine, no Electron/Chromium/WebView, and no WebHID permission prompts — compiles down to a single **~12 MB** binary with full official-driver feature parity.
 
 ---
 
@@ -35,7 +36,17 @@ Built with **pure Go (`CGO_ENABLED=0`)** and [**`egoist/mygo`**](https://github.
 
 ---
 
-## Installation
+## Downloads
+
+Prebuilt binaries for **Windows (x64)**, **Linux (x86_64)**, and **Linux ARM64** are automatically built via GitHub Actions on [**GitHub Releases**](https://github.com/Xunflash/valkyrie-driver-linux/releases):
+
+- `valkyrie-driver-v*-windows-amd64.zip` — Extract and launch `valkyrie-driver.exe`
+- `valkyrie-driver-v*-linux-amd64.tar.gz` — Includes binary, icon, desktop entry, and udev rules
+- `valkyrie-driver-v*-linux-arm64.tar.gz` — Includes binary, icon, desktop entry, and udev rules
+
+---
+
+## Building from Source
 
 ### Prerequisites
 - Build: Go `1.27.3+` (no CGO/GCC required)
