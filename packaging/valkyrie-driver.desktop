@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Valkyrie Driver
+Name[zh_CN]=瓦尔基里驱动 (Linux 原生版)
+Comment=Lightweight native Linux Go + MyGo driver for Valkyrie mice (Bluetooth / 2.4G / USB)
+Comment[zh_CN]=瓦尔基里鼠标轻量原生 Linux 驱动（支持蓝牙 / 2.4G / 有线）
+Exec=@EXEC@
+Icon=@ICON@
+Terminal=false
+StartupNotify=true
+StartupWMClass=Valkyrie Driver
+Categories=Utility;HardwareSettings;

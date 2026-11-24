@@ -1,0 +1,11 @@
+# Valkyrie (VID 0x374A) & RongYuan (0x3151, 0x25AA) Linux hidraw/USB access
+# Allows non-root users to configure mice over Bluetooth (BLE), 2.4G dongle, and USB wired modes.
+SUBSYSTEM=="hidraw", SUBSYSTEMS=="hid", KERNELS=="*:374A:*", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="hidraw", SUBSYSTEMS=="hid", KERNELS=="*:3151:*", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="hidraw", SUBSYSTEMS=="hid", KERNELS=="*:25AA:*", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="374a", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="25aa", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="374a", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="3151", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="25aa", MODE="0666", TAG+="uaccess"
