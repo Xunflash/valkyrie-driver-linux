@@ -72,19 +72,20 @@
 ## 系统依赖
 
 - **编译依赖**：Go `1.27.3+`（无需 GCC / CGO）
-- **运行依赖**：Linux 桌面环境自带的 `libgtk-4`、`libpango`、`libGL` / `libepoxy`（主流 GNOME / KDE 桌面默认已包含）
+- **运行依赖**：Linux 桌面环境自带的 `libgtk-3`、`libpango` / `libcairo`、`libepoxy`、`libGL` / `libEGL`（主流 GNOME / KDE / XFCE 桌面默认已包含）
 
 ---
 
 ## 下载预编译版本
 
-前往 [**GitHub Releases**](https://github.com/Xunflash/valkyrie-driver-linux/releases) 直接下载由 GitHub Actions 自动构建的二进制包（均附带 `SHA256SUMS.txt`）：
+前往 [**GitHub Releases**](https://github.com/Xunflash/valkyrie-driver-linux/releases) 直接下载由 GitHub Actions 自动构建的安装包（均附带 `SHA256SUMS.txt`）：
 
-| 平台 | 架构 | 压缩包 | 说明 |
-| --- | --- | --- | --- |
-| **Windows** | `x86_64` (`amd64`) | `valkyrie-driver-v*-windows-amd64.zip` | 解压双击 `valkyrie-driver.exe` 即可运行 |
-| **Linux** | `x86_64` (`amd64`) | `valkyrie-driver-v*-linux-amd64.tar.gz` | 含二进制、图标与 `packaging/99-valkyrie-hid.rules` |
-| **Linux (ARM)** | `arm64` (`aarch64`) | `valkyrie-driver-v*-linux-arm64.tar.gz` | 适用于树莓派 / ARM 笔记本 / 工作站 |
+| 平台 | 架构 | 格式 | 文件名 | 说明 |
+| --- | --- | --- | --- | --- |
+| **Linux (Debian / Ubuntu)** | `amd64` / `arm64` | **DEB** | `valkyrie-driver-v*-linux-{amd64,arm64}.deb` | `sudo apt install ./xxx.deb` 一键安装（自动配置 udev 规则与桌面图标） |
+| **Linux (通用发行版)** | `amd64` / `arm64` | **AppImage** | `valkyrie-driver-v*-linux-{amd64,arm64}.AppImage` | `chmod +x` 后免安装直接运行 |
+| **Linux (便携包)** | `amd64` / `arm64` | `tar.gz` | `valkyrie-driver-v*-linux-{amd64,arm64}.tar.gz` | 含二进制、图标与 udev 规则脚本 |
+| **Windows** | `amd64` (`x86_64`) | `zip` | `valkyrie-driver-v*-windows-amd64.zip` | 解压双击 `valkyrie-driver.exe` 即可运行 |
 
 ---
 

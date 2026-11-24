@@ -9,4 +9,4 @@ Icon=@ICON@
 Terminal=false
 StartupNotify=true
 StartupWMClass=Valkyrie Driver
-Categories=Utility;HardwareSettings;
+Categories=Utility;Settings;HardwareSettings;

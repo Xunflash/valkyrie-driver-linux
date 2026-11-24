@@ -45,6 +45,21 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install Linux packaging tools (squashfs-tools, desktop-file-utils)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends squashfs-tools desktop-file-utils
+
+      - name: Download official AppImage Type 2 runtimes (x86_64 & aarch64)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/appimage-runtime
+          curl -fsSL -o /tmp/appimage-runtime/runtime-x86_64 \
+            https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+          curl -fsSL -o /tmp/appimage-runtime/runtime-aarch64 \
+            https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-aarch64
+          ls -lh /tmp/appimage-runtime/
+
       - name: Resolve release tag
         id: meta
         shell: bash
@@ -57,13 +72,14 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Building release for tag: ${TAG}"
 
-      - name: Build Windows, Linux x86_64, and Linux ARM64 packages
+      - name: Build Windows (.zip), Linux x86_64 & ARM64 (.deb / .AppImage / .tar.gz)
         shell: bash
         env:
           TAG: ${{ steps.meta.outputs.tag }}
           CGO_ENABLED: "0"
         run: |
           set -euo pipefail
+          chmod +x packaging/build-deb.sh packaging/build-appimage.sh
           rm -rf dist stage
           mkdir -p dist stage
 
@@ -77,7 +93,7 @@ jobs:
           cp README.md README_EN.md LICENSE "${WIN_DIR}/"
           (cd stage && zip -r "../dist/valkyrie-driver-${TAG}-windows-amd64.zip" "valkyrie-driver-${TAG}-windows-amd64")
 
-          # 2. Linux x86_64 (pure Go)
+          # 2. Linux x86_64 (.deb + .AppImage + .tar.gz)
           LIN_AMD64_DIR="stage/valkyrie-driver-${TAG}-linux-amd64"
           mkdir -p "${LIN_AMD64_DIR}/assets" "${LIN_AMD64_DIR}/packaging"
           GOOS=linux GOARCH=amd64 go build \
@@ -85,11 +101,26 @@ jobs:
             -ldflags="-s -w -X main.version=${TAG}" \
             -o "${LIN_AMD64_DIR}/valkyrie-driver" .
           cp assets/icon.png "${LIN_AMD64_DIR}/assets/"
-          cp packaging/* "${LIN_AMD64_DIR}/packaging/"
+          cp packaging/99-valkyrie-hid.rules packaging/valkyrie-driver.desktop packaging/install.sh "${LIN_AMD64_DIR}/packaging/"
           cp README.md README_EN.md LICENSE "${LIN_AMD64_DIR}/"
           tar -C stage -czf "dist/valkyrie-driver-${TAG}-linux-amd64.tar.gz" "valkyrie-driver-${TAG}-linux-amd64"
 
-          # 3. Linux ARM64 (pure Go)
+          ./packaging/build-deb.sh \
+            "${LIN_AMD64_DIR}/valkyrie-driver" \
+            amd64 \
+            "${TAG}" \
+            "dist/valkyrie-driver-${TAG}-linux-amd64.deb"
+
+          ./packaging/build-appimage.sh \
+            "${LIN_AMD64_DIR}/valkyrie-driver" \
+            /tmp/appimage-runtime/runtime-x86_64 \
+            "dist/valkyrie-driver-${TAG}-linux-amd64.AppImage"
+
+          # Verify amd64 AppImage runs natively on ubuntu-latest runner
+          "dist/valkyrie-driver-${TAG}-linux-amd64.AppImage" --appimage-extract-and-run --version
+          dpkg-deb --info "dist/valkyrie-driver-${TAG}-linux-amd64.deb"
+
+          # 3. Linux ARM64 (.deb + .AppImage + .tar.gz)
           LIN_ARM64_DIR="stage/valkyrie-driver-${TAG}-linux-arm64"
           mkdir -p "${LIN_ARM64_DIR}/assets" "${LIN_ARM64_DIR}/packaging"
           GOOS=linux GOARCH=arm64 go build \
@@ -97,9 +128,22 @@ jobs:
             -ldflags="-s -w -X main.version=${TAG}" \
             -o "${LIN_ARM64_DIR}/valkyrie-driver" .
           cp assets/icon.png "${LIN_ARM64_DIR}/assets/"
-          cp packaging/* "${LIN_ARM64_DIR}/packaging/"
+          cp packaging/99-valkyrie-hid.rules packaging/valkyrie-driver.desktop packaging/install.sh "${LIN_ARM64_DIR}/packaging/"
           cp README.md README_EN.md LICENSE "${LIN_ARM64_DIR}/"
           tar -C stage -czf "dist/valkyrie-driver-${TAG}-linux-arm64.tar.gz" "valkyrie-driver-${TAG}-linux-arm64"
+
+          ./packaging/build-deb.sh \
+            "${LIN_ARM64_DIR}/valkyrie-driver" \
+            arm64 \
+            "${TAG}" \
+            "dist/valkyrie-driver-${TAG}-linux-arm64.deb"
+
+          ./packaging/build-appimage.sh \
+            "${LIN_ARM64_DIR}/valkyrie-driver" \
+            /tmp/appimage-runtime/runtime-aarch64 \
+            "dist/valkyrie-driver-${TAG}-linux-arm64.AppImage"
+
+          dpkg-deb --info "dist/valkyrie-driver-${TAG}-linux-arm64.deb"
 
           # 4. SHA256 checksums
           (cd dist && sha256sum valkyrie-driver-* > SHA256SUMS.txt)
@@ -118,21 +162,29 @@ jobs:
 
           ### 下载说明 / Downloads
 
-          | 平台 / Platform | 架构 / Arch | 文件名 / Asset |
-          | --- | --- | --- |
-          | **Windows** | x86_64 (\`amd64\`) | \`valkyrie-driver-${TAG}-windows-amd64.zip\` |
-          | **Linux** | x86_64 (\`amd64\`) | \`valkyrie-driver-${TAG}-linux-amd64.tar.gz\` |
-          | **Linux (ARM)** | ARM64 (\`arm64\`) | \`valkyrie-driver-${TAG}-linux-arm64.tar.gz\` |
+          | 平台 / Platform | 架构 / Arch | 格式 / Format | 文件名 / Asset |
+          | --- | --- | --- | --- |
+          | **Windows** | x86_64 (\`amd64\`) | ZIP | \`valkyrie-driver-${TAG}-windows-amd64.zip\` |
+          | **Linux (Debian / Ubuntu)** | x86_64 (\`amd64\`) | **DEB**（含自动 udev 规则） | \`valkyrie-driver-${TAG}-linux-amd64.deb\` |
+          | **Linux (通用发行版)** | x86_64 (\`amd64\`) | **AppImage** | \`valkyrie-driver-${TAG}-linux-amd64.AppImage\` |
+          | **Linux (ARM Debian / Ubuntu)** | ARM64 (\`arm64\`) | **DEB**（含自动 udev 规则） | \`valkyrie-driver-${TAG}-linux-arm64.deb\` |
+          | **Linux (ARM 通用发行版)** | ARM64 (\`arm64\`) | **AppImage** | \`valkyrie-driver-${TAG}-linux-arm64.AppImage\` |
+          | **Linux (便携压缩包)** | \`amd64\` / \`arm64\` | tar.gz | \`valkyrie-driver-${TAG}-linux-{amd64,arm64}.tar.gz\` |
 
           ### 快速上手 / Quick Start
 
-          - **Windows**：解压后直接双击运行 \`valkyrie-driver.exe\`（若官方驱动正在运行请先退出避免占用 HID 接口）。
-          - **Linux (amd64 / arm64)**：解压后运行 \`./valkyrie-driver\`；如提示无权限访问 \`/dev/hidraw*\`，请安装压缩包内附带的 udev 规则：
+          - **Debian / Ubuntu / Armbian（推荐 `.deb`）**：自动安装桌面快捷方式、图标与 \`/lib/udev/rules.d/99-valkyrie-hid.rules\`：
             \`\`\`bash
-            sudo install -Dm644 packaging/99-valkyrie-hid.rules /etc/udev/rules.d/99-valkyrie-hid.rules
-            sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=hidraw --subsystem-match=usb
+            sudo apt install ./valkyrie-driver-${TAG}-linux-amd64.deb   # ARM64 请换为 arm64.deb
             \`\`\`
-          - **CLI 诊断**：Linux 下支持 \`./valkyrie-driver --status\`、\`--json\`、\`--check-fw\`。
+          - **Linux 通用发行版（`.AppImage`）**：赋予执行权限后直接双击或终端运行：
+            \`\`\`bash
+            chmod +x valkyrie-driver-${TAG}-linux-amd64.AppImage
+            ./valkyrie-driver-${TAG}-linux-amd64.AppImage
+            \`\`\`
+            > 如无权限访问 \`/dev/hidraw*\`，可参考仓库 [99-valkyrie-hid.rules](https://github.com/Xunflash/valkyrie-driver-linux/blob/main/packaging/99-valkyrie-hid.rules) 配置 udev 规则。
+          - **Windows**：解压后直接双击运行 \`valkyrie-driver.exe\`（若官方驱动正在运行请先退出避免占用 HID 接口）。
+          - **CLI 诊断**：Linux 下支持 \`valkyrie-driver --status\`、\`--json\`、\`--check-fw\`、\`--version\`。
 
           ### 校验和 / SHA256 Checksums
 

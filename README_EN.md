@@ -38,11 +38,12 @@ Built with **pure Go (`CGO_ENABLED=0`)** and [**`egoist/mygo`**](https://github.
 
 ## Downloads
 
-Prebuilt binaries for **Windows (x64)**, **Linux (x86_64)**, and **Linux ARM64** are automatically built via GitHub Actions on [**GitHub Releases**](https://github.com/Xunflash/valkyrie-driver-linux/releases):
+Prebuilt packages for **Linux (`.deb` / `.AppImage` / `.tar.gz` for `amd64` & `arm64`)** and **Windows (`amd64` `.zip`)** are automatically built via GitHub Actions on [**GitHub Releases**](https://github.com/Xunflash/valkyrie-driver-linux/releases):
 
+- `valkyrie-driver-v*-linux-{amd64,arm64}.deb` — Debian/Ubuntu package with automatic `udev` rules & desktop entry (`sudo apt install ./valkyrie-driver-*.deb`)
+- `valkyrie-driver-v*-linux-{amd64,arm64}.AppImage` — Portable universal Linux AppImage (`chmod +x` and run)
+- `valkyrie-driver-v*-linux-{amd64,arm64}.tar.gz` — Portable tarball with binary, icon, desktop entry, and udev rules
 - `valkyrie-driver-v*-windows-amd64.zip` — Extract and launch `valkyrie-driver.exe`
-- `valkyrie-driver-v*-linux-amd64.tar.gz` — Includes binary, icon, desktop entry, and udev rules
-- `valkyrie-driver-v*-linux-arm64.tar.gz` — Includes binary, icon, desktop entry, and udev rules
 
 ---
 
@@ -50,7 +51,7 @@ Prebuilt binaries for **Windows (x64)**, **Linux (x86_64)**, and **Linux ARM64**
 
 ### Prerequisites
 - Build: Go `1.27.3+` (no CGO/GCC required)
-- Runtime: standard Linux desktop GTK4 / Pango / OpenGL libraries (`libgtk-4`, `libpango`, `libepoxy`, `libGL`)
+- Runtime: standard Linux desktop GTK3 / Pango / Cairo / OpenGL libraries (`libgtk-3`, `libpangocairo`, `libepoxy`, `libGL` / `libEGL`)
 
 ### Quick Install
 
